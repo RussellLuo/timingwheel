@@ -82,6 +82,9 @@ func (pq *PriorityQueue) PeekAndShift(max int64) (*Item, int64) {
 
 // The end of PriorityQueue implementation.
 
+// DelayQueue is an unbounded blocking queue of *Delayed* elements, in which
+// an element can only be taken when its delay has expired. The head of the
+// queue is the *Delayed* element whose delay expired furthest in the past.
 type DelayQueue struct {
 	C chan *Bucket
 
@@ -95,6 +98,7 @@ type DelayQueue struct {
 	readyC       chan struct{}
 }
 
+// NewDelayQueue creates an instance of DelayQueue with the specified size.
 func NewDelayQueue(size int) *DelayQueue {
 	return &DelayQueue{
 		C:       make(chan *Bucket),
@@ -104,6 +108,7 @@ func NewDelayQueue(size int) *DelayQueue {
 	}
 }
 
+// Offer inserts the bucket into the current queue.
 func (dq *DelayQueue) Offer(bucket *Bucket) {
 	item := &Item{Value: bucket, Priority: bucket.Expiration()}
 
@@ -122,6 +127,8 @@ func (dq *DelayQueue) Offer(bucket *Bucket) {
 	}
 }
 
+// Poll starts an infinite loop, in which it continually waits for an bucket to
+// be expired and then send the expired bucket to the timing wheel via the channel C.
 func (dq *DelayQueue) Poll(exitC chan struct{}) {
 	for {
 		now := timeToMs(time.Now())
@@ -167,7 +174,7 @@ func (dq *DelayQueue) Poll(exitC chan struct{}) {
 		bucket := item.Value.(*Bucket)
 		select {
 		case dq.C <- bucket:
-			// Send the expired bucket to timing wheel.
+			// Send the expired bucket to the timing wheel.
 		case <-exitC:
 			goto exit
 		}

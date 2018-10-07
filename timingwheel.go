@@ -1,11 +1,13 @@
 package timingwheel
 
 import (
+	"errors"
 	"sync/atomic"
 	"time"
 	"unsafe"
 )
 
+// TimingWheel is an implementation of Hierarchical Timing Wheels.
 type TimingWheel struct {
 	tick      int64 // in milliseconds
 	wheelSize int64
@@ -15,7 +17,7 @@ type TimingWheel struct {
 	buckets     []*Bucket
 	queue       *DelayQueue
 
-	// The parent overflow wheel.
+	// The higher-level overflow wheel.
 	//
 	// NOTE: This field may be updated and read concurrently, through Add().
 	overflowWheel unsafe.Pointer // type: *TimingWheel
@@ -26,10 +28,11 @@ type TimingWheel struct {
 	waitGroup WaitGroupWrapper
 }
 
+// NewTimingWheel creates an instance of TimingWheel with the given tick and wheelSize.
 func NewTimingWheel(tick time.Duration, wheelSize int64) *TimingWheel {
 	tickMs := int64(tick / time.Millisecond)
 	if tickMs <= 0 {
-		panic("tick must be greater than or equal to 1ms")
+		panic(errors.New("tick must be greater than or equal to 1ms"))
 	}
 
 	startMs := timeToMs(time.Now())
@@ -42,6 +45,7 @@ func NewTimingWheel(tick time.Duration, wheelSize int64) *TimingWheel {
 	)
 }
 
+// newTimingWheel is an internal helper function that really creates an instance of TimingWheel.
 func newTimingWheel(tickMs int64, wheelSize int64, startMs int64, queue *DelayQueue) *TimingWheel {
 	buckets := make([]*Bucket, wheelSize)
 	for i := range buckets {
@@ -63,11 +67,19 @@ func (tw *TimingWheel) add(t *Timer) bool {
 		// Already expired
 		return false
 	} else if t.Expiration < tw.currentTime+tw.interval {
+		// Put it into its own bucket
 		virtualID := t.Expiration / tw.tick
 		bucket := tw.buckets[virtualID%tw.wheelSize]
 		bucket.Add(t)
 
+		// Set the bucket expiration time
 		if bucket.SetExpiration(virtualID * tw.tick) {
+			// The bucket needs to be enqueued since it was an expired bucket.
+			// We only need to enqueue the bucket when its expiration time has changed,
+			// i.e. the wheel has advanced and this bucket get reused with a new expiration.
+			// Any further calls to set the expiration within the same wheel cycle will
+			// pass in the same value and hence return false, thus the bucket with the
+			// same expiration will not be enqueued multiple times.
 			tw.queue.Offer(bucket)
 		}
 
@@ -92,6 +104,7 @@ func (tw *TimingWheel) add(t *Timer) bool {
 	}
 }
 
+// Add adds the timer t into the current timing wheel.
 func (tw *TimingWheel) Add(t *Timer) {
 	if !tw.add(t) {
 		// Already expired
@@ -114,6 +127,7 @@ func (tw *TimingWheel) advanceClock(expiration int64) {
 	}
 }
 
+// Start starts the current timing wheel.
 func (tw *TimingWheel) Start() {
 	tw.waitGroup.Wrap(func() {
 		tw.queue.Poll(tw.exitC)
@@ -132,6 +146,7 @@ func (tw *TimingWheel) Start() {
 	})
 }
 
+// Stop stops the current timing wheel.
 func (tw *TimingWheel) Stop() {
 	close(tw.exitC)
 	tw.waitGroup.Wait()

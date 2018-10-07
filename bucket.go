@@ -8,6 +8,8 @@ import (
 	"unsafe"
 )
 
+// Timer represents a single event. When the Timer expires, the given
+// task will be executed.
 type Timer struct {
 	Expiration int64 // in milliseconds
 	Task       func()
@@ -42,6 +44,8 @@ func (t *Timer) setBucket(b *Bucket) {
 	atomic.StorePointer(&t.bucket, unsafe.Pointer(b))
 }
 
+// Stop prevents the Timer from firing. It returns true if the call
+// stops the timer, false if the timer has already expired or been stopped.
 func (t *Timer) Stop() bool {
 	stopped := false
 	for b := t.getBucket(); b != nil; b = t.getBucket() {
@@ -95,7 +99,7 @@ func (b *Bucket) remove(t *Timer) bool {
 		//     1. removed t from b (through b.Flush -> b.remove)
 		//     2. moved t from b to another bucket ab (through b.Flush -> b.remove and ab.Add)
 		// then t.getBucket will return nil for case 1, or ab (non-nil) for case 2.
-		// In either case, the returned value is not equal to b.
+		// In either case, the returned value does not equal to b.
 		return false
 	}
 	b.timers.Remove(t.element)
