@@ -108,10 +108,10 @@ func (tw *TimingWheel) add(t *Timer) bool {
 func (tw *TimingWheel) Add(t *Timer) {
 	if !tw.add(t) {
 		// Already expired
-		// TODO: Execute the timer task in a fixed-sized goroutine pool
-		tw.waitGroup.Wrap(func() {
-			t.Task()
-		})
+
+		// Like the standard time.AfterFunc (https://golang.org/pkg/time/#AfterFunc),
+		// always execute the timer's task in its own goroutine.
+		go t.Task()
 	}
 }
 
@@ -147,6 +147,10 @@ func (tw *TimingWheel) Start() {
 }
 
 // Stop stops the current timing wheel.
+//
+// If there is any timer's task being running in its own goroutine, Stop does
+// not wait for the task to complete before returning. If the caller needs to
+// know whether the task is completed, it must coordinate with the task explicitly.
 func (tw *TimingWheel) Stop() {
 	close(tw.exitC)
 	tw.waitGroup.Wait()

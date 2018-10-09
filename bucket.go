@@ -24,11 +24,8 @@ type Timer struct {
 	element *list.Element
 }
 
-// TODO
-// func NewTimer(d time.Duration) *Timer {
-//     ...
-// }
-
+// AfterFunc waits for the duration to elapse and then calls f in its own goroutine.
+// It returns a Timer that can be used to cancel the call using its Stop method.
 func AfterFunc(d time.Duration, f func()) *Timer {
 	return &Timer{
 		Expiration: timeToMs(time.Now().Add(d)),
@@ -46,6 +43,10 @@ func (t *Timer) setBucket(b *Bucket) {
 
 // Stop prevents the Timer from firing. It returns true if the call
 // stops the timer, false if the timer has already expired or been stopped.
+//
+// If the timer has already expired and the function Task has been started in its
+// own goroutine; Stop does not wait for Task to complete before returning. If the caller
+// needs to know whether Task is completed, it must coordinate with Task explicitly.
 func (t *Timer) Stop() bool {
 	stopped := false
 	for b := t.getBucket(); b != nil; b = t.getBucket() {
