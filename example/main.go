@@ -14,7 +14,7 @@ const (
 	InternalTimerDelay = 20              // go internal timer delay setting
 	MainGoroutineWait  = 25              //
 	MaxTaskChannelSize = 100             //
-	FixedTimeZone      = "Asia/Shanghai" // 中国上海, 当地时区 China TimeZone 
+	FixedTimeZone      = "Asia/Shanghai" // 中国上海, 当地时区 China TimeZone
 )
 
 var (
