@@ -7,7 +7,7 @@ import (
 	"github.com/RussellLuo/timingwheel"
 )
 
-func Example_AddTimer() {
+func Example_addTimer() {
 	tw := timingwheel.NewTimingWheel(time.Millisecond, 20)
 	tw.Start()
 	defer tw.Stop()
@@ -25,7 +25,7 @@ func Example_AddTimer() {
 	// The timer fires
 }
 
-func Example_StopTimer() {
+func Example_stopTimer() {
 	tw := timingwheel.NewTimingWheel(time.Millisecond, 20)
 	tw.Start()
 	defer tw.Stop()
