@@ -91,9 +91,11 @@ type DelayQueue struct {
 	mu sync.Mutex
 	pq PriorityQueue
 
+	// Similar to the sleeping state of runtime.timers.
 	sleeping int32
 	wakeupC  chan struct{}
 
+	// Similar to the rescheduling state of runtime.timers.
 	rescheduling int32
 	readyC       chan struct{}
 }
@@ -128,7 +130,7 @@ func (dq *DelayQueue) Offer(bucket *Bucket) {
 }
 
 // Poll starts an infinite loop, in which it continually waits for an bucket to
-// be expired and then send the expired bucket to the timing wheel via the channel C.
+// expire and then send the expired bucket to the timing wheel via the channel C.
 func (dq *DelayQueue) Poll(exitC chan struct{}) {
 	for {
 		now := timeToMs(time.Now())
