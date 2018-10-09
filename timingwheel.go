@@ -63,12 +63,12 @@ func newTimingWheel(tickMs int64, wheelSize int64, startMs int64, queue *DelayQu
 }
 
 func (tw *TimingWheel) add(t *Timer) bool {
-	if t.Expiration < tw.currentTime+tw.tick {
+	if t.expiration < tw.currentTime+tw.tick {
 		// Already expired
 		return false
-	} else if t.Expiration < tw.currentTime+tw.interval {
+	} else if t.expiration < tw.currentTime+tw.interval {
 		// Put it into its own bucket
-		virtualID := t.Expiration / tw.tick
+		virtualID := t.expiration / tw.tick
 		bucket := tw.buckets[virtualID%tw.wheelSize]
 		bucket.Add(t)
 
@@ -111,7 +111,7 @@ func (tw *TimingWheel) Add(t *Timer) {
 
 		// Like the standard time.AfterFunc (https://golang.org/pkg/time/#AfterFunc),
 		// always execute the timer's task in its own goroutine.
-		go t.Task()
+		go t.task()
 	}
 }
 

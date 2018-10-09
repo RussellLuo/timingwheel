@@ -11,8 +11,8 @@ import (
 // Timer represents a single event. When the Timer expires, the given
 // task will be executed.
 type Timer struct {
-	Expiration int64 // in milliseconds
-	Task       func()
+	expiration int64 // in milliseconds
+	task       func()
 
 	// The list to which this timer's element belongs.
 	//
@@ -28,8 +28,8 @@ type Timer struct {
 // It returns a Timer that can be used to cancel the call using its Stop method.
 func AfterFunc(d time.Duration, f func()) *Timer {
 	return &Timer{
-		Expiration: timeToMs(time.Now().Add(d)),
-		Task:       f,
+		expiration: timeToMs(time.Now().Add(d)),
+		task:       f,
 	}
 }
 
@@ -44,9 +44,9 @@ func (t *Timer) setBucket(b *Bucket) {
 // Stop prevents the Timer from firing. It returns true if the call
 // stops the timer, false if the timer has already expired or been stopped.
 //
-// If the timer has already expired and the function Task has been started in its
-// own goroutine; Stop does not wait for Task to complete before returning. If the caller
-// needs to know whether Task is completed, it must coordinate with Task explicitly.
+// If the timer t has already expired and the t.task has been started in its own
+// goroutine; Stop does not wait for t.task to complete before returning. If the caller
+// needs to know whether t.task is completed, it must coordinate with t.task explicitly.
 func (t *Timer) Stop() bool {
 	stopped := false
 	for b := t.getBucket(); b != nil; b = t.getBucket() {

@@ -25,13 +25,14 @@ func TestTimingWheel_Add(t *testing.T) {
 		t.Run("", func(t *testing.T) {
 			exitC := make(chan time.Time)
 
+			start := time.Now()
 			timer := timingwheel.AfterFunc(d, func() {
 				exitC <- time.Now()
 			})
 			tw.Add(timer)
 
 			got := (<-exitC).Truncate(time.Millisecond)
-			min := time.Unix(0, timer.Expiration*int64(time.Millisecond))
+			min := start.Add(d).Truncate(time.Millisecond)
 
 			err := 5 * time.Millisecond
 			if got.Before(min) || got.After(min.Add(err)) {
