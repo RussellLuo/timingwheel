@@ -53,11 +53,10 @@ func timingWheelTaskRunner() {
 
 // use timer
 func goInternalTimerTaskRunner() {
-	go func() {
-		fmt.Println("******************> The go internal timer fires ( delay 20 second)")
-		fmt.Println(time.Now().In(tl).Format("2006-01-02 15:04:05.999999999 -0700 MST"))
-	}()
-
+	// 	go func() {
+	fmt.Println("******************> The go internal timer fires ( delay 20 second)")
+	fmt.Println(time.Now().In(tl).Format("2006-01-02 15:04:05.999999999 -0700 MST"))
+	// 	}()
 }
 
 // go internal timer for delay 20 second
