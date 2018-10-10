@@ -25,22 +25,22 @@ For usage and examples see the [Godoc][4].
 ## Benchmark
 
 ```
-$ go test -bench .
+$ go test -bench=.
 goos: darwin
 goarch: amd64
 pkg: github.com/RussellLuo/timingwheel
-BenchmarkTimingWheel_AddStop_SameDurations_1million-8                    1000000               425 ns/op
-BenchmarkStandardTimer_StartStop_SameDurations_1million-8                1000000               258 ns/op
-BenchmarkTimingWheel_AddStop_DifferentDurations_1million-8               1000000               337 ns/op
-BenchmarkStandardTimer_StartStop_DifferentDurations_1million-8           1000000               237 ns/op
-BenchmarkTimingWheel_AddStop_SameDurations_5million-8                    5000000               532 ns/op
-BenchmarkStandardTimer_StartStop_SameDurations_5million-8                5000000               301 ns/op
-BenchmarkTimingWheel_AddStop_DifferentDurations_5million-8               5000000               325 ns/op
-BenchmarkStandardTimer_StartStop_DifferentDurations_5million-8           5000000               470 ns/op
-BenchmarkTimingWheel_AddStop_SameDurations_10million-8                  10000000               460 ns/op
-BenchmarkStandardTimer_StartStop_SameDurations_10million-8              10000000               353 ns/op
-BenchmarkTimingWheel_AddStop_DifferentDurations_10million-8             10000000               333 ns/op
-BenchmarkStandardTimer_StartStop_DifferentDurations_10million-8         10000000              1462 ns/op
+BenchmarkTimingWheel_StartStop_1millionTimers_WithSameDurations-8                1000000               314 ns/op
+BenchmarkStandardTimer_StartStop_1millionTimers_WithSameDurations-8              1000000               233 ns/op
+BenchmarkTimingWheel_StartStop_1millionTimers_WithDifferentDurations-8           1000000               323 ns/op
+BenchmarkStandardTimer_StartStop_1millionTimers_WithDifferentDurations-8         1000000               239 ns/op
+BenchmarkTimingWheel_StartStop_5millionsTimers_WithSameDurations-8               5000000               608 ns/op
+BenchmarkStandardTimer_StartStop_5millionsTimers_WithSameDurations-8             5000000               288 ns/op
+BenchmarkTimingWheel_StartStop_5millionsTimers_WithDifferentDurations-8          5000000               330 ns/op
+BenchmarkStandardTimer_StartStop_5millionsTimers_WithDifferentDurations-8        5000000               465 ns/op
+BenchmarkTimingWheel_StartStop_10millionsTimers_WithSameDurations-8             10000000               502 ns/op
+BenchmarkStandardTimer_StartStop_10millionsTimers_WithSameDurations-8           10000000               376 ns/op
+BenchmarkTimingWheel_StartStop_10millionsTimers_WithDifferentDurations-8        10000000               344 ns/op
+BenchmarkStandardTimer_StartStop_10millionsTimers_WithDifferentDurations-8      10000000              1459 ns/op
 ```
 
 
