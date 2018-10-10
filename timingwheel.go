@@ -62,6 +62,7 @@ func newTimingWheel(tickMs int64, wheelSize int64, startMs int64, queue *DelayQu
 	}
 }
 
+// add inserts the timer t into the current timing wheel.
 func (tw *TimingWheel) add(t *Timer) bool {
 	if t.expiration < tw.currentTime+tw.tick {
 		// Already expired
@@ -104,8 +105,9 @@ func (tw *TimingWheel) add(t *Timer) bool {
 	}
 }
 
-// Add adds the timer t into the current timing wheel.
-func (tw *TimingWheel) Add(t *Timer) {
+// addOrRun inserts the timer t into the current timing wheel, or run the
+// timer's task if it has already expired.
+func (tw *TimingWheel) addOrRun(t *Timer) {
 	if !tw.add(t) {
 		// Already expired
 
@@ -138,7 +140,7 @@ func (tw *TimingWheel) Start() {
 			select {
 			case bucket := <-tw.queue.C:
 				tw.advanceClock(bucket.Expiration())
-				bucket.Flush(tw.Add)
+				bucket.Flush(tw.addOrRun)
 			case <-tw.exitC:
 				return
 			}
@@ -154,4 +156,15 @@ func (tw *TimingWheel) Start() {
 func (tw *TimingWheel) Stop() {
 	close(tw.exitC)
 	tw.waitGroup.Wait()
+}
+
+// AfterFunc waits for the duration to elapse and then calls f in its own goroutine.
+// It returns a Timer that can be used to cancel the call using its Stop method.
+func (tw *TimingWheel) AfterFunc(d time.Duration, f func()) *Timer {
+	t := &Timer{
+		expiration: timeToMs(time.Now().Add(d)),
+		task:       f,
+	}
+	tw.addOrRun(t)
+	return t
 }

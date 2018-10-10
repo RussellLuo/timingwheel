@@ -26,10 +26,9 @@ func TestTimingWheel_Add(t *testing.T) {
 			exitC := make(chan time.Time)
 
 			start := time.Now()
-			timer := timingwheel.AfterFunc(d, func() {
+			tw.AfterFunc(d, func() {
 				exitC <- time.Now()
 			})
-			tw.Add(timer)
 
 			got := (<-exitC).Truncate(time.Millisecond)
 			min := start.Add(d).Truncate(time.Millisecond)

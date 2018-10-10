@@ -4,7 +4,6 @@ import (
 	"container/list"
 	"sync"
 	"sync/atomic"
-	"time"
 	"unsafe"
 )
 
@@ -22,15 +21,6 @@ type Timer struct {
 
 	// The timer's element.
 	element *list.Element
-}
-
-// AfterFunc waits for the duration to elapse and then calls f in its own goroutine.
-// It returns a Timer that can be used to cancel the call using its Stop method.
-func AfterFunc(d time.Duration, f func()) *Timer {
-	return &Timer{
-		expiration: timeToMs(time.Now().Add(d)),
-		task:       f,
-	}
 }
 
 func (t *Timer) getBucket() *Bucket {

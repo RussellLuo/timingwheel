@@ -7,15 +7,14 @@ import (
 	"github.com/RussellLuo/timingwheel"
 )
 
-func benchmarkTimingWheel_AddStop(b *testing.B, genD func(int) time.Duration) {
+func benchmarkTimingWheel_StartStop(b *testing.B, genD func(int) time.Duration) {
 	tw := timingwheel.NewTimingWheel(time.Millisecond, 20)
 	tw.Start()
 	defer tw.Stop()
 
 	timers := make([]*timingwheel.Timer, b.N)
 	for i := 0; i < b.N; i++ {
-		timers[i] = timingwheel.AfterFunc(genD(i), func() {})
-		tw.Add(timers[i])
+		timers[i] = tw.AfterFunc(genD(i), func() {})
 	}
 
 	for i := 0; i < b.N; i++ {
@@ -34,84 +33,84 @@ func benchmarkStandardTimer_StartStop(b *testing.B, genD func(int) time.Duration
 	}
 }
 
-func BenchmarkTimingWheel_AddStop_SameDurations_1million(b *testing.B) {
+func BenchmarkTimingWheel_StartStop_1millionTimers_WithSameDurations(b *testing.B) {
 	b.N = 1000000
-	benchmarkTimingWheel_AddStop(b, func(int) time.Duration {
+	benchmarkTimingWheel_StartStop(b, func(int) time.Duration {
 		return time.Second
 	})
 }
 
-func BenchmarkStandardTimer_StartStop_SameDurations_1million(b *testing.B) {
+func BenchmarkStandardTimer_StartStop_1millionTimers_WithSameDurations(b *testing.B) {
 	b.N = 1000000
 	benchmarkStandardTimer_StartStop(b, func(int) time.Duration {
 		return time.Second
 	})
 }
 
-func BenchmarkTimingWheel_AddStop_DifferentDurations_1million(b *testing.B) {
+func BenchmarkTimingWheel_StartStop_1millionTimers_WithDifferentDurations(b *testing.B) {
 	b.N = 1000000
-	benchmarkTimingWheel_AddStop(b, func(i int) time.Duration {
+	benchmarkTimingWheel_StartStop(b, func(i int) time.Duration {
 		return time.Duration(i%10000) * time.Millisecond
 	})
 }
 
-func BenchmarkStandardTimer_StartStop_DifferentDurations_1million(b *testing.B) {
+func BenchmarkStandardTimer_StartStop_1millionTimers_WithDifferentDurations(b *testing.B) {
 	b.N = 1000000
 	benchmarkStandardTimer_StartStop(b, func(i int) time.Duration {
 		return time.Duration(i%10000) * time.Millisecond
 	})
 }
 
-func BenchmarkTimingWheel_AddStop_SameDurations_5million(b *testing.B) {
+func BenchmarkTimingWheel_StartStop_5millionsTimers_WithSameDurations(b *testing.B) {
 	b.N = 5000000
-	benchmarkTimingWheel_AddStop(b, func(int) time.Duration {
+	benchmarkTimingWheel_StartStop(b, func(int) time.Duration {
 		return time.Second
 	})
 }
 
-func BenchmarkStandardTimer_StartStop_SameDurations_5million(b *testing.B) {
+func BenchmarkStandardTimer_StartStop_5millionsTimers_WithSameDurations(b *testing.B) {
 	b.N = 5000000
 	benchmarkStandardTimer_StartStop(b, func(int) time.Duration {
 		return time.Second
 	})
 }
 
-func BenchmarkTimingWheel_AddStop_DifferentDurations_5million(b *testing.B) {
+func BenchmarkTimingWheel_StartStop_5millionsTimers_WithDifferentDurations(b *testing.B) {
 	b.N = 5000000
-	benchmarkTimingWheel_AddStop(b, func(i int) time.Duration {
+	benchmarkTimingWheel_StartStop(b, func(i int) time.Duration {
 		return time.Duration(i%10000) * time.Millisecond
 	})
 }
 
-func BenchmarkStandardTimer_StartStop_DifferentDurations_5million(b *testing.B) {
+func BenchmarkStandardTimer_StartStop_5millionsTimers_WithDifferentDurations(b *testing.B) {
 	b.N = 5000000
 	benchmarkStandardTimer_StartStop(b, func(i int) time.Duration {
 		return time.Duration(i%10000) * time.Millisecond
 	})
 }
 
-func BenchmarkTimingWheel_AddStop_SameDurations_10million(b *testing.B) {
+func BenchmarkTimingWheel_StartStop_10millionsTimers_WithSameDurations(b *testing.B) {
 	b.N = 10000000
-	benchmarkTimingWheel_AddStop(b, func(int) time.Duration {
+	benchmarkTimingWheel_StartStop(b, func(int) time.Duration {
 		return time.Second
 	})
 }
 
-func BenchmarkStandardTimer_StartStop_SameDurations_10million(b *testing.B) {
+func BenchmarkStandardTimer_StartStop_10millionsTimers_WithSameDurations(b *testing.B) {
 	b.N = 10000000
 	benchmarkStandardTimer_StartStop(b, func(int) time.Duration {
 		return time.Second
 	})
 }
 
-func BenchmarkTimingWheel_AddStop_DifferentDurations_10million(b *testing.B) {
+func BenchmarkTimingWheel_StartStop_10millionsTimers_WithDifferentDurations(b *testing.B) {
 	b.N = 10000000
-	benchmarkTimingWheel_AddStop(b, func(i int) time.Duration {
+	benchmarkTimingWheel_StartStop(b, func(i int) time.Duration {
 		return time.Duration(i%10000) * time.Millisecond
 	})
 }
 
-func BenchmarkStandardTimer_StartStop_DifferentDurations_10million(b *testing.B) {
+func BenchmarkStandardTimer_StartStop_10millionsTimers_WithDifferentDurations(b *testing.B) {
 	b.N = 10000000
 	benchmarkStandardTimer_StartStop(b, func(i int) time.Duration {
 		return time.Duration(i%10000) * time.Millisecond
