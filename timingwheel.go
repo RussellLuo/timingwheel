@@ -14,8 +14,8 @@ type TimingWheel struct {
 
 	interval    int64 // in milliseconds
 	currentTime int64 // in milliseconds
-	buckets     []*Bucket
-	queue       *DelayQueue
+	buckets     []*bucket
+	queue       *delayQueue
 
 	// The higher-level overflow wheel.
 	//
@@ -25,7 +25,7 @@ type TimingWheel struct {
 	workerPoolSize int64
 
 	exitC     chan struct{}
-	waitGroup WaitGroupWrapper
+	waitGroup waitGroupWrapper
 }
 
 // NewTimingWheel creates an instance of TimingWheel with the given tick and wheelSize.
@@ -41,15 +41,15 @@ func NewTimingWheel(tick time.Duration, wheelSize int64) *TimingWheel {
 		tickMs,
 		wheelSize,
 		startMs,
-		NewDelayQueue(int(wheelSize)),
+		newDelayQueue(int(wheelSize)),
 	)
 }
 
 // newTimingWheel is an internal helper function that really creates an instance of TimingWheel.
-func newTimingWheel(tickMs int64, wheelSize int64, startMs int64, queue *DelayQueue) *TimingWheel {
-	buckets := make([]*Bucket, wheelSize)
+func newTimingWheel(tickMs int64, wheelSize int64, startMs int64, queue *delayQueue) *TimingWheel {
+	buckets := make([]*bucket, wheelSize)
 	for i := range buckets {
-		buckets[i] = NewBucket()
+		buckets[i] = newBucket()
 	}
 	return &TimingWheel{
 		tick:        tickMs,
@@ -70,18 +70,18 @@ func (tw *TimingWheel) add(t *Timer) bool {
 	} else if t.expiration < tw.currentTime+tw.interval {
 		// Put it into its own bucket
 		virtualID := t.expiration / tw.tick
-		bucket := tw.buckets[virtualID%tw.wheelSize]
-		bucket.Add(t)
+		b := tw.buckets[virtualID%tw.wheelSize]
+		b.Add(t)
 
 		// Set the bucket expiration time
-		if bucket.SetExpiration(virtualID * tw.tick) {
+		if b.SetExpiration(virtualID * tw.tick) {
 			// The bucket needs to be enqueued since it was an expired bucket.
 			// We only need to enqueue the bucket when its expiration time has changed,
 			// i.e. the wheel has advanced and this bucket get reused with a new expiration.
 			// Any further calls to set the expiration within the same wheel cycle will
 			// pass in the same value and hence return false, thus the bucket with the
 			// same expiration will not be enqueued multiple times.
-			tw.queue.Offer(bucket)
+			tw.queue.Offer(b)
 		}
 
 		return true
@@ -138,9 +138,9 @@ func (tw *TimingWheel) Start() {
 	tw.waitGroup.Wrap(func() {
 		for {
 			select {
-			case bucket := <-tw.queue.C:
-				tw.advanceClock(bucket.Expiration())
-				bucket.Flush(tw.addOrRun)
+			case b := <-tw.queue.C:
+				tw.advanceClock(b.Expiration())
+				b.Flush(tw.addOrRun)
 			case <-tw.exitC:
 				return
 			}

@@ -13,22 +13,22 @@ type Timer struct {
 	expiration int64 // in milliseconds
 	task       func()
 
-	// The list to which this timer's element belongs.
+	// The bucket that holds the list to which this timer's element belongs.
 	//
 	// NOTE: This field may be updated and read concurrently,
 	// through Timer.Stop() and Bucket.Flush().
-	bucket unsafe.Pointer // type: *Bucket
+	b unsafe.Pointer // type: *bucket
 
 	// The timer's element.
 	element *list.Element
 }
 
-func (t *Timer) getBucket() *Bucket {
-	return (*Bucket)(atomic.LoadPointer(&t.bucket))
+func (t *Timer) getBucket() *bucket {
+	return (*bucket)(atomic.LoadPointer(&t.b))
 }
 
-func (t *Timer) setBucket(b *Bucket) {
-	atomic.StorePointer(&t.bucket, unsafe.Pointer(b))
+func (t *Timer) setBucket(b *bucket) {
+	atomic.StorePointer(&t.b, unsafe.Pointer(b))
 }
 
 // Stop prevents the Timer from firing. It returns true if the call
@@ -52,29 +52,29 @@ func (t *Timer) Stop() bool {
 	return stopped
 }
 
-type Bucket struct {
+type bucket struct {
 	mu     sync.Mutex
 	timers *list.List
 
 	expiration int64
 }
 
-func NewBucket() *Bucket {
-	return &Bucket{
+func newBucket() *bucket {
+	return &bucket{
 		timers:     list.New(),
 		expiration: -1,
 	}
 }
 
-func (b *Bucket) Expiration() int64 {
+func (b *bucket) Expiration() int64 {
 	return atomic.LoadInt64(&b.expiration)
 }
 
-func (b *Bucket) SetExpiration(expiration int64) bool {
+func (b *bucket) SetExpiration(expiration int64) bool {
 	return atomic.SwapInt64(&b.expiration, expiration) != expiration
 }
 
-func (b *Bucket) Add(t *Timer) {
+func (b *bucket) Add(t *Timer) {
 	b.mu.Lock()
 
 	e := b.timers.PushBack(t)
@@ -84,7 +84,7 @@ func (b *Bucket) Add(t *Timer) {
 	b.mu.Unlock()
 }
 
-func (b *Bucket) remove(t *Timer) bool {
+func (b *bucket) remove(t *Timer) bool {
 	if t.getBucket() != b {
 		// If remove is called from t.Stop, and this happens just after the timing wheel's goroutine has:
 		//     1. removed t from b (through b.Flush -> b.remove)
@@ -99,13 +99,13 @@ func (b *Bucket) remove(t *Timer) bool {
 	return true
 }
 
-func (b *Bucket) Remove(t *Timer) bool {
+func (b *bucket) Remove(t *Timer) bool {
 	b.mu.Lock()
 	defer b.mu.Unlock()
 	return b.remove(t)
 }
 
-func (b *Bucket) Flush(reinsert func(*Timer)) {
+func (b *bucket) Flush(reinsert func(*Timer)) {
 	b.mu.Lock()
 	e := b.timers.Front()
 	for e != nil {

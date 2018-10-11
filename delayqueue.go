@@ -10,7 +10,7 @@ import (
 // The start of PriorityQueue implementation.
 // Borrowed from https://github.com/nsqio/nsq/blob/master/internal/pqueue/pqueue.go
 
-type Item struct {
+type item struct {
 	Value    interface{}
 	Priority int64
 	Index    int
@@ -18,45 +18,45 @@ type Item struct {
 
 // this is a priority queue as implemented by a min heap
 // ie. the 0th element is the *lowest* value
-type PriorityQueue []*Item
+type priorityQueue []*item
 
-func NewPriorityQueue(capacity int) PriorityQueue {
-	return make(PriorityQueue, 0, capacity)
+func newPriorityQueue(capacity int) priorityQueue {
+	return make(priorityQueue, 0, capacity)
 }
 
-func (pq PriorityQueue) Len() int {
+func (pq priorityQueue) Len() int {
 	return len(pq)
 }
 
-func (pq PriorityQueue) Less(i, j int) bool {
+func (pq priorityQueue) Less(i, j int) bool {
 	return pq[i].Priority < pq[j].Priority
 }
 
-func (pq PriorityQueue) Swap(i, j int) {
+func (pq priorityQueue) Swap(i, j int) {
 	pq[i], pq[j] = pq[j], pq[i]
 	pq[i].Index = i
 	pq[j].Index = j
 }
 
-func (pq *PriorityQueue) Push(x interface{}) {
+func (pq *priorityQueue) Push(x interface{}) {
 	n := len(*pq)
 	c := cap(*pq)
 	if n+1 > c {
-		npq := make(PriorityQueue, n, c*2)
+		npq := make(priorityQueue, n, c*2)
 		copy(npq, *pq)
 		*pq = npq
 	}
 	*pq = (*pq)[0 : n+1]
-	item := x.(*Item)
+	item := x.(*item)
 	item.Index = n
 	(*pq)[n] = item
 }
 
-func (pq *PriorityQueue) Pop() interface{} {
+func (pq *priorityQueue) Pop() interface{} {
 	n := len(*pq)
 	c := cap(*pq)
 	if n < (c/2) && c > 25 {
-		npq := make(PriorityQueue, n, c/2)
+		npq := make(priorityQueue, n, c/2)
 		copy(npq, *pq)
 		*pq = npq
 	}
@@ -66,7 +66,7 @@ func (pq *PriorityQueue) Pop() interface{} {
 	return item
 }
 
-func (pq *PriorityQueue) PeekAndShift(max int64) (*Item, int64) {
+func (pq *priorityQueue) PeekAndShift(max int64) (*item, int64) {
 	if pq.Len() == 0 {
 		return nil, 0
 	}
@@ -82,14 +82,14 @@ func (pq *PriorityQueue) PeekAndShift(max int64) (*Item, int64) {
 
 // The end of PriorityQueue implementation.
 
-// DelayQueue is an unbounded blocking queue of *Delayed* elements, in which
+// delayQueue is an unbounded blocking queue of *Delayed* elements, in which
 // an element can only be taken when its delay has expired. The head of the
 // queue is the *Delayed* element whose delay expired furthest in the past.
-type DelayQueue struct {
-	C chan *Bucket
+type delayQueue struct {
+	C chan *bucket
 
 	mu sync.Mutex
-	pq PriorityQueue
+	pq priorityQueue
 
 	// Similar to the sleeping state of runtime.timers.
 	sleeping int32
@@ -100,19 +100,19 @@ type DelayQueue struct {
 	readyC       chan struct{}
 }
 
-// NewDelayQueue creates an instance of DelayQueue with the specified size.
-func NewDelayQueue(size int) *DelayQueue {
-	return &DelayQueue{
-		C:       make(chan *Bucket),
-		pq:      NewPriorityQueue(size),
+// newDelayQueue creates an instance of delayQueue with the specified size.
+func newDelayQueue(size int) *delayQueue {
+	return &delayQueue{
+		C:       make(chan *bucket),
+		pq:      newPriorityQueue(size),
 		wakeupC: make(chan struct{}),
 		readyC:  make(chan struct{}),
 	}
 }
 
 // Offer inserts the bucket into the current queue.
-func (dq *DelayQueue) Offer(bucket *Bucket) {
-	item := &Item{Value: bucket, Priority: bucket.Expiration()}
+func (dq *delayQueue) Offer(b *bucket) {
+	item := &item{Value: b, Priority: b.Expiration()}
 
 	dq.mu.Lock()
 	heap.Push(&dq.pq, item)
@@ -131,7 +131,7 @@ func (dq *DelayQueue) Offer(bucket *Bucket) {
 
 // Poll starts an infinite loop, in which it continually waits for an bucket to
 // expire and then send the expired bucket to the timing wheel via the channel C.
-func (dq *DelayQueue) Poll(exitC chan struct{}) {
+func (dq *delayQueue) Poll(exitC chan struct{}) {
 	for {
 		now := timeToMs(time.Now())
 
@@ -173,9 +173,9 @@ func (dq *DelayQueue) Poll(exitC chan struct{}) {
 			}
 		}
 
-		bucket := item.Value.(*Bucket)
+		b := item.Value.(*bucket)
 		select {
-		case dq.C <- bucket:
+		case dq.C <- b:
 			// Send the expired bucket to the timing wheel.
 		case <-exitC:
 			goto exit

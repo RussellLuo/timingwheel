@@ -19,11 +19,11 @@ func timeToMs(t time.Time) int64 {
 	return int64(time.Duration(t.UnixNano()) / time.Millisecond)
 }
 
-type WaitGroupWrapper struct {
+type waitGroupWrapper struct {
 	sync.WaitGroup
 }
 
-func (w *WaitGroupWrapper) Wrap(cb func()) {
+func (w *waitGroupWrapper) Wrap(cb func()) {
 	w.Add(1)
 	go func() {
 		cb()
