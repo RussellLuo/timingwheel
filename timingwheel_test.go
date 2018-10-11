@@ -7,7 +7,7 @@ import (
 	"github.com/RussellLuo/timingwheel"
 )
 
-func TestTimingWheel_Add(t *testing.T) {
+func TestTimingWheel_AfterFunc(t *testing.T) {
 	tw := timingwheel.NewTimingWheel(time.Millisecond, 20)
 	tw.Start()
 	defer tw.Stop()
