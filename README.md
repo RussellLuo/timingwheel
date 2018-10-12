@@ -29,18 +29,16 @@ $ go test -bench=.
 goos: darwin
 goarch: amd64
 pkg: github.com/RussellLuo/timingwheel
-BenchmarkTimingWheel_StartStop_1millionTimers_WithSameDurations-8                1000000               314 ns/op
-BenchmarkStandardTimer_StartStop_1millionTimers_WithSameDurations-8              1000000               233 ns/op
-BenchmarkTimingWheel_StartStop_1millionTimers_WithDifferentDurations-8           1000000               323 ns/op
-BenchmarkStandardTimer_StartStop_1millionTimers_WithDifferentDurations-8         1000000               239 ns/op
-BenchmarkTimingWheel_StartStop_5millionsTimers_WithSameDurations-8               5000000               608 ns/op
-BenchmarkStandardTimer_StartStop_5millionsTimers_WithSameDurations-8             5000000               288 ns/op
-BenchmarkTimingWheel_StartStop_5millionsTimers_WithDifferentDurations-8          5000000               330 ns/op
-BenchmarkStandardTimer_StartStop_5millionsTimers_WithDifferentDurations-8        5000000               465 ns/op
-BenchmarkTimingWheel_StartStop_10millionsTimers_WithSameDurations-8             10000000               502 ns/op
-BenchmarkStandardTimer_StartStop_10millionsTimers_WithSameDurations-8           10000000               376 ns/op
-BenchmarkTimingWheel_StartStop_10millionsTimers_WithDifferentDurations-8        10000000               344 ns/op
-BenchmarkStandardTimer_StartStop_10millionsTimers_WithDifferentDurations-8      10000000              1459 ns/op
+BenchmarkTimingWheel_10kTimers_StartStop-8               5000000               411 ns/op
+BenchmarkStandardTimer_10kTimers_StartStop-8             5000000               581 ns/op
+BenchmarkTimingWheel_100kTimers_StartStop-8              5000000               333 ns/op
+BenchmarkStandardTimer_100kTimers_StartStop-8            5000000               541 ns/op
+BenchmarkTimingWheel_1mTimers_StartStop-8                5000000               372 ns/op
+BenchmarkStandardTimer_1mTimers_StartStop-8              2000000              1302 ns/op
+BenchmarkTimingWheel_10mTimers_StartStop-8               5000000               427 ns/op
+BenchmarkStandardTimer_10mTimers_StartStop-8             1000000              2180 ns/op
+PASS
+ok      github.com/RussellLuo/timingwheel       106.640s
 ```
 
 
