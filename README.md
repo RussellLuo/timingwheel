@@ -25,20 +25,18 @@ For usage and examples see the [Godoc][4].
 ## Benchmark
 
 ```
-$ go test -bench=.
+$ go test -bench=. -benchmem
 goos: darwin
 goarch: amd64
 pkg: github.com/RussellLuo/timingwheel
-BenchmarkTimingWheel_10kTimers_StartStop-8               5000000               411 ns/op
-BenchmarkStandardTimer_10kTimers_StartStop-8             5000000               581 ns/op
-BenchmarkTimingWheel_100kTimers_StartStop-8              5000000               333 ns/op
-BenchmarkStandardTimer_100kTimers_StartStop-8            5000000               541 ns/op
-BenchmarkTimingWheel_1mTimers_StartStop-8                5000000               372 ns/op
-BenchmarkStandardTimer_1mTimers_StartStop-8              2000000              1302 ns/op
-BenchmarkTimingWheel_10mTimers_StartStop-8               5000000               427 ns/op
-BenchmarkStandardTimer_10mTimers_StartStop-8             1000000              2180 ns/op
+BenchmarkTimingWheel_StartStop/N-1m-8            5000000               329 ns/op              83 B/op          2 allocs/op
+BenchmarkTimingWheel_StartStop/N-5m-8            5000000               363 ns/op              95 B/op          2 allocs/op
+BenchmarkTimingWheel_StartStop/N-10m-8           5000000               440 ns/op              37 B/op          1 allocs/op
+BenchmarkStandardTimer_StartStop/N-1m-8         10000000               199 ns/op              64 B/op          1 allocs/op
+BenchmarkStandardTimer_StartStop/N-5m-8          2000000               644 ns/op              64 B/op          1 allocs/op
+BenchmarkStandardTimer_StartStop/N-10m-8          500000              2434 ns/op              64 B/op          1 allocs/op
 PASS
-ok      github.com/RussellLuo/timingwheel       106.640s
+ok      github.com/RussellLuo/timingwheel       116.977s
 ```
 
 

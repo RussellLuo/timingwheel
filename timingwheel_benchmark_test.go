@@ -11,70 +11,64 @@ func genD(i int) time.Duration {
 	return time.Duration(i%10000) * time.Millisecond
 }
 
-func benchmarkTimingWheel_StartStop(b *testing.B, n int) {
+func BenchmarkTimingWheel_StartStop(b *testing.B) {
 	tw := timingwheel.NewTimingWheel(time.Millisecond, 20)
 	tw.Start()
 	defer tw.Stop()
 
-	for i := 0; i < n; i++ {
-		tw.AfterFunc(genD(i), func() {})
+	cases := []struct {
+		name string
+		N    int // the data size (i.e. number of existing timers)
+	}{
+		{"N-1m", 1000000},
+		{"N-5m", 5000000},
+		{"N-10m", 10000000},
 	}
-	b.ResetTimer()
+	for _, c := range cases {
+		b.Run(c.name, func(b *testing.B) {
+			base := make([]*timingwheel.Timer, c.N)
+			for i := 0; i < len(base); i++ {
+				base[i] = tw.AfterFunc(genD(i), func() {})
+			}
+			b.ResetTimer()
 
-	timers := make([]*timingwheel.Timer, b.N)
-	for i := 0; i < b.N; i++ {
-		timers[i] = tw.AfterFunc(genD(i), func() {})
-	}
+			for i := 0; i < b.N; i++ {
+				tw.AfterFunc(time.Second, func() {}).Stop()
+			}
 
-	for i := 0; i < b.N; i++ {
-		timers[i].Stop()
-	}
-}
-
-func benchmarkStandardTimer_StartStop(b *testing.B, n int) {
-	for i := 0; i < n; i++ {
-		time.AfterFunc(genD(i), func() {})
-	}
-	b.ResetTimer()
-
-	timers := make([]*time.Timer, b.N)
-	for i := 0; i < b.N; i++ {
-		timers[i] = time.AfterFunc(genD(i), func() {})
-	}
-
-	for i := 0; i < b.N; i++ {
-		timers[i].Stop()
+			b.StopTimer()
+			for i := 0; i < len(base); i++ {
+				base[i].Stop()
+			}
+		})
 	}
 }
 
-func BenchmarkTimingWheel_10kTimers_StartStop(b *testing.B) {
-	benchmarkTimingWheel_StartStop(b, 10000)
-}
+func BenchmarkStandardTimer_StartStop(b *testing.B) {
+	cases := []struct {
+		name string
+		N    int // the data size (i.e. number of existing timers)
+	}{
+		{"N-1m", 1000000},
+		{"N-5m", 5000000},
+		{"N-10m", 10000000},
+	}
+	for _, c := range cases {
+		b.Run(c.name, func(b *testing.B) {
+			base := make([]*time.Timer, c.N)
+			for i := 0; i < len(base); i++ {
+				base[i] = time.AfterFunc(genD(i), func() {})
+			}
+			b.ResetTimer()
 
-func BenchmarkStandardTimer_10kTimers_StartStop(b *testing.B) {
-	benchmarkStandardTimer_StartStop(b, 10000)
-}
+			for i := 0; i < b.N; i++ {
+				time.AfterFunc(time.Second, func() {}).Stop()
+			}
 
-func BenchmarkTimingWheel_100kTimers_StartStop(b *testing.B) {
-	benchmarkTimingWheel_StartStop(b, 100000)
-}
-
-func BenchmarkStandardTimer_100kTimers_StartStop(b *testing.B) {
-	benchmarkStandardTimer_StartStop(b, 100000)
-}
-
-func BenchmarkTimingWheel_1mTimers_StartStop(b *testing.B) {
-	benchmarkTimingWheel_StartStop(b, 1000000)
-}
-
-func BenchmarkStandardTimer_1mTimers_StartStop(b *testing.B) {
-	benchmarkStandardTimer_StartStop(b, 1000000)
-}
-
-func BenchmarkTimingWheel_10mTimers_StartStop(b *testing.B) {
-	benchmarkTimingWheel_StartStop(b, 10000000)
-}
-
-func BenchmarkStandardTimer_10mTimers_StartStop(b *testing.B) {
-	benchmarkStandardTimer_StartStop(b, 10000000)
+			b.StopTimer()
+			for i := 0; i < len(base); i++ {
+				base[i].Stop()
+			}
+		})
+	}
 }
