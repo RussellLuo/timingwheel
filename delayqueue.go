@@ -94,10 +94,6 @@ type delayQueue struct {
 	// Similar to the sleeping state of runtime.timers.
 	sleeping int32
 	wakeupC  chan struct{}
-
-	// Similar to the rescheduling state of runtime.timers.
-	rescheduling int32
-	readyC       chan struct{}
 }
 
 // newDelayQueue creates an instance of delayQueue with the specified size.
@@ -106,7 +102,6 @@ func newDelayQueue(size int) *delayQueue {
 		C:       make(chan *bucket),
 		pq:      newPriorityQueue(size),
 		wakeupC: make(chan struct{}),
-		readyC:  make(chan struct{}),
 	}
 }
 
@@ -123,9 +118,6 @@ func (dq *delayQueue) Offer(b *bucket) {
 		if atomic.CompareAndSwapInt32(&dq.sleeping, 1, 0) {
 			dq.wakeupC <- struct{}{}
 		}
-		if atomic.CompareAndSwapInt32(&dq.rescheduling, 1, 0) {
-			dq.readyC <- struct{}{}
-		}
 	}
 }
 
@@ -137,22 +129,28 @@ func (dq *delayQueue) Poll(exitC chan struct{}) {
 
 		dq.mu.Lock()
 		item, delta := dq.pq.PeekAndShift(now)
+		if item == nil {
+			// No items left or at least one item is pending.
+
+			// We must ensure the atomicity of the whole operation, which is
+			// composed of the above PeekAndShift and the following StoreInt32,
+			// to avoid possible race conditions between Offer and Poll.
+			atomic.StoreInt32(&dq.sleeping, 1)
+		}
 		dq.mu.Unlock()
 
 		if item == nil {
 			if delta == 0 {
 				// No items left.
-				atomic.StoreInt32(&dq.rescheduling, 1)
-				// Wait until a new item is added.
 				select {
-				case <-dq.readyC:
+				case <-dq.wakeupC:
+					// Wait until a new item is added.
 					continue
 				case <-exitC:
 					goto exit
 				}
 			} else if delta > 0 {
 				// At least one item is pending.
-				atomic.StoreInt32(&dq.sleeping, 1)
 				select {
 				case <-dq.wakeupC:
 					// A new item with an "earlier" expiration than the current "earliest" one is added.
@@ -185,5 +183,4 @@ func (dq *delayQueue) Poll(exitC chan struct{}) {
 exit:
 	// Reset the states
 	atomic.StoreInt32(&dq.sleeping, 0)
-	atomic.StoreInt32(&dq.rescheduling, 0)
 }
