@@ -1,4 +1,4 @@
-package timingwheel
+package delayqueue
 
 import (
 	"container/heap"
@@ -82,11 +82,11 @@ func (pq *priorityQueue) PeekAndShift(max int64) (*item, int64) {
 
 // The end of PriorityQueue implementation.
 
-// delayQueue is an unbounded blocking queue of *Delayed* elements, in which
+// DelayQueue is an unbounded blocking queue of *Delayed* elements, in which
 // an element can only be taken when its delay has expired. The head of the
 // queue is the *Delayed* element whose delay expired furthest in the past.
-type delayQueue struct {
-	C chan *bucket
+type DelayQueue struct {
+	C chan interface{}
 
 	mu sync.Mutex
 	pq priorityQueue
@@ -96,18 +96,18 @@ type delayQueue struct {
 	wakeupC  chan struct{}
 }
 
-// newDelayQueue creates an instance of delayQueue with the specified size.
-func newDelayQueue(size int) *delayQueue {
-	return &delayQueue{
-		C:       make(chan *bucket),
+// New creates an instance of delayQueue with the specified size.
+func New(size int) *DelayQueue {
+	return &DelayQueue{
+		C:       make(chan interface{}),
 		pq:      newPriorityQueue(size),
 		wakeupC: make(chan struct{}),
 	}
 }
 
-// Offer inserts the bucket into the current queue.
-func (dq *delayQueue) Offer(b *bucket) {
-	item := &item{Value: b, Priority: b.Expiration()}
+// Offer inserts the element into the current queue.
+func (dq *DelayQueue) Offer(elem interface{}, expiration int64) {
+	item := &item{Value: elem, Priority: expiration}
 
 	dq.mu.Lock()
 	heap.Push(&dq.pq, item)
@@ -121,11 +121,11 @@ func (dq *delayQueue) Offer(b *bucket) {
 	}
 }
 
-// Poll starts an infinite loop, in which it continually waits for an bucket to
-// expire and then send the expired bucket to the timing wheel via the channel C.
-func (dq *delayQueue) Poll(exitC chan struct{}) {
+// Poll starts an infinite loop, in which it continually waits for an element to
+// expire and then send the expired element to the timing wheel via the channel C.
+func (dq *DelayQueue) Poll(exitC chan struct{}, nowF func() int64) {
 	for {
-		now := timeToMs(time.Now())
+		now := nowF()
 
 		dq.mu.Lock()
 		item, delta := dq.pq.PeekAndShift(now)
@@ -171,10 +171,9 @@ func (dq *delayQueue) Poll(exitC chan struct{}) {
 			}
 		}
 
-		b := item.Value.(*bucket)
 		select {
-		case dq.C <- b:
-			// Send the expired bucket to the timing wheel.
+		case dq.C <- item.Value:
+			// Send the expired element to the timing wheel.
 		case <-exitC:
 			goto exit
 		}

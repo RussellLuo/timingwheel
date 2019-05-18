@@ -5,6 +5,8 @@ import (
 	"sync/atomic"
 	"time"
 	"unsafe"
+
+	"github.com/RussellLuo/timingwheel/delayqueue"
 )
 
 // TimingWheel is an implementation of Hierarchical Timing Wheels.
@@ -15,7 +17,7 @@ type TimingWheel struct {
 	interval    int64 // in milliseconds
 	currentTime int64 // in milliseconds
 	buckets     []*bucket
-	queue       *delayQueue
+	queue       *delayqueue.DelayQueue
 
 	// The higher-level overflow wheel.
 	//
@@ -41,12 +43,12 @@ func NewTimingWheel(tick time.Duration, wheelSize int64) *TimingWheel {
 		tickMs,
 		wheelSize,
 		startMs,
-		newDelayQueue(int(wheelSize)),
+		delayqueue.New(int(wheelSize)),
 	)
 }
 
 // newTimingWheel is an internal helper function that really creates an instance of TimingWheel.
-func newTimingWheel(tickMs int64, wheelSize int64, startMs int64, queue *delayQueue) *TimingWheel {
+func newTimingWheel(tickMs int64, wheelSize int64, startMs int64, queue *delayqueue.DelayQueue) *TimingWheel {
 	buckets := make([]*bucket, wheelSize)
 	for i := range buckets {
 		buckets[i] = newBucket()
@@ -81,7 +83,7 @@ func (tw *TimingWheel) add(t *Timer) bool {
 			// Any further calls to set the expiration within the same wheel cycle will
 			// pass in the same value and hence return false, thus the bucket with the
 			// same expiration will not be enqueued multiple times.
-			tw.queue.Offer(b)
+			tw.queue.Offer(b, b.Expiration())
 		}
 
 		return true
@@ -132,13 +134,16 @@ func (tw *TimingWheel) advanceClock(expiration int64) {
 // Start starts the current timing wheel.
 func (tw *TimingWheel) Start() {
 	tw.waitGroup.Wrap(func() {
-		tw.queue.Poll(tw.exitC)
+		tw.queue.Poll(tw.exitC, func() int64 {
+			return timeToMs(time.Now())
+		})
 	})
 
 	tw.waitGroup.Wrap(func() {
 		for {
 			select {
-			case b := <-tw.queue.C:
+			case elem := <-tw.queue.C:
+				b := elem.(*bucket)
 				tw.advanceClock(b.Expiration())
 				b.Flush(tw.addOrRun)
 			case <-tw.exitC:
