@@ -111,9 +111,10 @@ func (dq *DelayQueue) Offer(elem interface{}, expiration int64) {
 
 	dq.mu.Lock()
 	heap.Push(&dq.pq, item)
+	index := item.Index
 	dq.mu.Unlock()
 
-	if item.Index == 0 {
+	if index == 0 {
 		// A new item with the earliest expiration is added.
 		if atomic.CompareAndSwapInt32(&dq.sleeping, 1, 0) {
 			dq.wakeupC <- struct{}{}
