@@ -173,3 +173,15 @@ func (tw *TimingWheel) AfterFunc(d time.Duration, f func()) *Timer {
 	tw.addOrRun(t)
 	return t
 }
+
+func (tw *TimingWheel) EveryFunc(d time.Duration, f func()) *Timer {
+	t := &Timer{expiration: timeToMs(time.Now().Add(d))}
+
+	t.task = func() {
+		t.expiration = timeToMs(time.Now().Add(d))
+		tw.addOrRun(t)
+		f()
+	}
+	tw.addOrRun(t)
+	return t
+}
