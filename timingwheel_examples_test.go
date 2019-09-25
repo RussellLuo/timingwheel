@@ -15,7 +15,7 @@ func Example_startTimer() {
 	exitC := make(chan time.Time, 1)
 	tw.AfterFunc(time.Second, func() {
 		fmt.Println("The timer fires")
-		exitC <- time.Now()
+		exitC <- time.Now().UTC()
 	})
 
 	<-exitC

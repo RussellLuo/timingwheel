@@ -37,7 +37,7 @@ func NewTimingWheel(tick time.Duration, wheelSize int64) *TimingWheel {
 		panic(errors.New("tick must be greater than or equal to 1ms"))
 	}
 
-	startMs := timeToMs(time.Now())
+	startMs := timeToMs(time.Now().UTC())
 
 	return newTimingWheel(
 		tickMs,
@@ -135,7 +135,7 @@ func (tw *TimingWheel) advanceClock(expiration int64) {
 func (tw *TimingWheel) Start() {
 	tw.waitGroup.Wrap(func() {
 		tw.queue.Poll(tw.exitC, func() int64 {
-			return timeToMs(time.Now())
+			return timeToMs(time.Now().UTC())
 		})
 	})
 
@@ -167,7 +167,7 @@ func (tw *TimingWheel) Stop() {
 // It returns a Timer that can be used to cancel the call using its Stop method.
 func (tw *TimingWheel) AfterFunc(d time.Duration, f func()) *Timer {
 	t := &Timer{
-		expiration: timeToMs(time.Now().Add(d)),
+		expiration: timeToMs(time.Now().UTC().Add(d)),
 		task:       f,
 	}
 	tw.addOrRun(t)

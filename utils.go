@@ -16,7 +16,7 @@ func truncate(x, m int64) int64 {
 
 // timeToMs returns an integer number, which represents t in milliseconds.
 func timeToMs(t time.Time) int64 {
-	return int64(time.Duration(t.UnixNano()) / time.Millisecond)
+	return t.UnixNano() / int64(time.Millisecond)
 }
 
 type waitGroupWrapper struct {
