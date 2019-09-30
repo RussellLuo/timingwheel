@@ -35,8 +35,57 @@ func TestTimingWheel_AfterFunc(t *testing.T) {
 
 			err := 5 * time.Millisecond
 			if got.Before(min) || got.After(min.Add(err)) {
-				t.Errorf("NewTimer(%s) want [%s, %s], got %s", d, min, min.Add(err), got)
+				t.Errorf("Timer(%s) expiration: want [%s, %s], got %s", d, min, min.Add(err), got)
 			}
 		})
+	}
+}
+
+type scheduler struct {
+	intervals []time.Duration
+	current   int
+}
+
+func (s *scheduler) Next(prev time.Time) time.Time {
+	if s.current >= len(s.intervals) {
+		return time.Time{}
+	}
+	next := prev.Add(s.intervals[s.current])
+	s.current += 1
+	return next
+}
+
+func TestTimingWheel_ScheduleFunc(t *testing.T) {
+	tw := timingwheel.NewTimingWheel(time.Millisecond, 20)
+	tw.Start()
+	defer tw.Stop()
+
+	s := &scheduler{intervals: []time.Duration{
+		1 * time.Millisecond,   // start + 1ms
+		4 * time.Millisecond,   // start + 5ms
+		5 * time.Millisecond,   // start + 10ms
+		40 * time.Millisecond,  // start + 50ms
+		50 * time.Millisecond,  // start + 100ms
+		400 * time.Millisecond, // start + 500ms
+		500 * time.Millisecond, // start + 1s
+	}}
+
+	exitC := make(chan time.Time, len(s.intervals))
+
+	start := time.Now().UTC()
+	tw.ScheduleFunc(s, func() {
+		exitC <- time.Now().UTC()
+	})
+
+	accum := time.Duration(0)
+	for _, d := range s.intervals {
+		got := (<-exitC).Truncate(time.Millisecond)
+		accum += d
+		min := start.Add(accum).Truncate(time.Millisecond)
+
+		err := 5 * time.Millisecond
+		if got.Before(min) || got.After(min.Add(err)) {
+			t.Errorf("Timer(%s) expiration: want [%s, %s], got %s", accum, min, min.Add(err), got)
+		}
 	}
 }
