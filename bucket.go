@@ -53,10 +53,10 @@ func (t *Timer) Stop() bool {
 }
 
 type bucket struct {
+	expiration int64
+	
 	mu     sync.Mutex
 	timers *list.List
-
-	expiration int64
 }
 
 func newBucket() *bucket {
