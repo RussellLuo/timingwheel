@@ -24,8 +24,6 @@ type TimingWheel struct {
 	// NOTE: This field may be updated and read concurrently, through Add().
 	overflowWheel unsafe.Pointer // type: *TimingWheel
 
-	workerPoolSize int64
-
 	exitC     chan struct{}
 	waitGroup waitGroupWrapper
 }
