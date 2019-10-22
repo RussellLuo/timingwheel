@@ -64,10 +64,11 @@ func newTimingWheel(tickMs int64, wheelSize int64, startMs int64, queue *delayqu
 
 // add inserts the timer t into the current timing wheel.
 func (tw *TimingWheel) add(t *Timer) bool {
-	if t.expiration < tw.currentTime+tw.tick {
+	currentTime := atomic.LoadInt64(&tw.currentTime)
+	if t.expiration < currentTime+tw.tick {
 		// Already expired
 		return false
-	} else if t.expiration < tw.currentTime+tw.interval {
+	} else if t.expiration < currentTime+tw.interval {
 		// Put it into its own bucket
 		virtualID := t.expiration / tw.tick
 		b := tw.buckets[virtualID%tw.wheelSize]
@@ -95,7 +96,7 @@ func (tw *TimingWheel) add(t *Timer) bool {
 				unsafe.Pointer(newTimingWheel(
 					tw.interval,
 					tw.wheelSize,
-					tw.currentTime,
+					currentTime,
 					tw.queue,
 				)),
 			)
@@ -118,13 +119,15 @@ func (tw *TimingWheel) addOrRun(t *Timer) {
 }
 
 func (tw *TimingWheel) advanceClock(expiration int64) {
-	if expiration >= tw.currentTime+tw.tick {
-		tw.currentTime = truncate(expiration, tw.tick)
+	currentTime := atomic.LoadInt64(&tw.currentTime)
+	if expiration >= currentTime+tw.tick {
+		currentTime = truncate(expiration, tw.tick)
+		atomic.StoreInt64(&tw.currentTime, currentTime)
 
 		// Try to advance the clock of the overflow wheel if present
 		overflowWheel := atomic.LoadPointer(&tw.overflowWheel)
 		if overflowWheel != nil {
-			(*TimingWheel)(overflowWheel).advanceClock(tw.currentTime)
+			(*TimingWheel)(overflowWheel).advanceClock(currentTime)
 		}
 	}
 }
