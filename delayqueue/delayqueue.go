@@ -122,8 +122,8 @@ func (dq *DelayQueue) Offer(elem interface{}, expiration int64) {
 	}
 }
 
-// Poll starts an infinite loop, in which it continually waits for an element to
-// expire and then send the expired element to the timing wheel via the channel C.
+// Poll starts an infinite loop, in which it continually waits for an element
+// to expire and then send the expired element to the channel C.
 func (dq *DelayQueue) Poll(exitC chan struct{}, nowF func() int64) {
 	for {
 		now := nowF()
@@ -174,7 +174,7 @@ func (dq *DelayQueue) Poll(exitC chan struct{}, nowF func() int64) {
 
 		select {
 		case dq.C <- item.Value:
-			// Send the expired element to the timing wheel.
+			// The expired element has been sent out successfully.
 		case <-exitC:
 			goto exit
 		}
