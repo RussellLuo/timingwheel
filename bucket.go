@@ -60,7 +60,7 @@ type bucket struct {
 	// For more explanations, see https://golang.org/pkg/sync/atomic/#pkg-note-BUG
 	// and https://go101.org/article/memory-layout.html.
 	expiration int64
-	
+
 	mu     sync.Mutex
 	timers *list.List
 }
@@ -112,16 +112,19 @@ func (b *bucket) Remove(t *Timer) bool {
 }
 
 func (b *bucket) Flush(reinsert func(*Timer)) {
+	var ts []*Timer
+
 	b.mu.Lock()
-	e := b.timers.Front()
-	for e != nil {
-		next := e.Next()
+	for e := b.timers.Front(); e != nil; e = e.Next() {
 		t := e.Value.(*Timer)
 		b.remove(t)
-		reinsert(t)
-		e = next
+		ts = append(ts, t)
 	}
 	b.mu.Unlock()
 
-	b.SetExpiration(-1)
+	b.SetExpiration(-1) // TODO: Improve the coordination with b.Add()
+
+	for _, t := range ts {
+		reinsert(t)
+	}
 }
