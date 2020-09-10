@@ -5,7 +5,9 @@ import (
 	"sync/atomic"
 	"time"
 	"unsafe"
-
+	
+	"github.com/panjf2000/ants"
+	
 	"github.com/RussellLuo/timingwheel/delayqueue"
 )
 
@@ -26,6 +28,7 @@ type TimingWheel struct {
 
 	exitC     chan struct{}
 	waitGroup waitGroupWrapper
+	workPool *ants.Pool
 }
 
 // NewTimingWheel creates an instance of TimingWheel with the given tick and wheelSize.
@@ -36,21 +39,23 @@ func NewTimingWheel(tick time.Duration, wheelSize int64) *TimingWheel {
 	}
 
 	startMs := timeToMs(time.Now().UTC())
-
+	p,_:=ants.NewPool(10000,ants.WithExpiryDuration(time.Second*10))
 	return newTimingWheel(
 		tickMs,
 		wheelSize,
 		startMs,
 		delayqueue.New(int(wheelSize)),
+		p,
 	)
 }
 
 // newTimingWheel is an internal helper function that really creates an instance of TimingWheel.
-func newTimingWheel(tickMs int64, wheelSize int64, startMs int64, queue *delayqueue.DelayQueue) *TimingWheel {
+func newTimingWheel(tickMs int64, wheelSize int64, startMs int64, queue *delayqueue.DelayQueue,wk*ants.Pool) *TimingWheel {
 	buckets := make([]*bucket, wheelSize)
 	for i := range buckets {
 		buckets[i] = newBucket()
 	}
+	
 	return &TimingWheel{
 		tick:        tickMs,
 		wheelSize:   wheelSize,
@@ -59,6 +64,7 @@ func newTimingWheel(tickMs int64, wheelSize int64, startMs int64, queue *delayqu
 		buckets:     buckets,
 		queue:       queue,
 		exitC:       make(chan struct{}),
+		workPool: wk,
 	}
 }
 
@@ -98,6 +104,7 @@ func (tw *TimingWheel) add(t *Timer) bool {
 					tw.wheelSize,
 					currentTime,
 					tw.queue,
+					tw.workPool,
 				)),
 			)
 			overflowWheel = atomic.LoadPointer(&tw.overflowWheel)
@@ -114,7 +121,8 @@ func (tw *TimingWheel) addOrRun(t *Timer) {
 
 		// Like the standard time.AfterFunc (https://golang.org/pkg/time/#AfterFunc),
 		// always execute the timer's task in its own goroutine.
-		go t.task()
+		tw.workPool.Submit(t.task)
+		//go t.task()
 	}
 }
 
@@ -162,6 +170,7 @@ func (tw *TimingWheel) Start() {
 func (tw *TimingWheel) Stop() {
 	close(tw.exitC)
 	tw.waitGroup.Wait()
+	tw.workPool.Release()
 }
 
 // AfterFunc waits for the duration to elapse and then calls f in its own goroutine.
