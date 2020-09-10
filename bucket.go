@@ -61,7 +61,7 @@ type bucket struct {
 	// and https://go101.org/article/memory-layout.html.
 	expiration int64
 	
-	mu     sync.Mutex
+	mu     sync.Locker
 	timers *list.List
 }
 
@@ -69,6 +69,7 @@ func newBucket() *bucket {
 	return &bucket{
 		timers:     list.New(),
 		expiration: -1,
+		mu: NewSpinLock(),
 	}
 }
 
