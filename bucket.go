@@ -115,10 +115,14 @@ func (b *bucket) Flush(reinsert func(*Timer)) {
 	var ts []*Timer
 
 	b.mu.Lock()
-	for e := b.timers.Front(); e != nil; e = e.Next() {
+	for e := b.timers.Front(); e != nil; {
+		next := e.Next()
+
 		t := e.Value.(*Timer)
 		b.remove(t)
 		ts = append(ts, t)
+
+		e = next
 	}
 	b.mu.Unlock()
 
