@@ -124,9 +124,8 @@ func (b *bucket) Flush(reinsert func(*Timer)) {
 
 		e = next
 	}
+	b.SetExpiration(-1)
 	b.mu.Unlock()
-
-	b.SetExpiration(-1) // TODO: Improve the coordination with b.Add()
 
 	for _, t := range ts {
 		reinsert(t)
