@@ -2,12 +2,15 @@ package timingwheel
 
 import (
 	"errors"
+	"sync"
 	"sync/atomic"
 	"time"
 	"unsafe"
 
 	"github.com/RussellLuo/timingwheel/delayqueue"
 )
+
+var rwlock *sync.RWMutex
 
 // TimingWheel is an implementation of Hierarchical Timing Wheels.
 type TimingWheel struct {
@@ -109,7 +112,10 @@ func (tw *TimingWheel) add(t *Timer) bool {
 // addOrRun inserts the timer t into the current timing wheel, or run the
 // timer's task if it has already expired.
 func (tw *TimingWheel) addOrRun(t *Timer) {
-	if !tw.add(t) {
+	rwlock.RLock()
+	notExpired := tw.add(t)
+	rwlock.RUnlock()
+	if !notExpired {
 		// Already expired
 
 		// Like the standard time.AfterFunc (https://golang.org/pkg/time/#AfterFunc),
@@ -134,6 +140,7 @@ func (tw *TimingWheel) advanceClock(expiration int64) {
 
 // Start starts the current timing wheel.
 func (tw *TimingWheel) Start() {
+	rwlock = new(sync.RWMutex)
 	tw.waitGroup.Wrap(func() {
 		tw.queue.Poll(tw.exitC, func() int64 {
 			return timeToMs(time.Now().UTC())
@@ -145,7 +152,9 @@ func (tw *TimingWheel) Start() {
 			select {
 			case elem := <-tw.queue.C:
 				b := elem.(*bucket)
+				rwlock.Lock()
 				tw.advanceClock(b.Expiration())
+				rwlock.Unlock()
 				b.Flush(tw.addOrRun)
 			case <-tw.exitC:
 				return
