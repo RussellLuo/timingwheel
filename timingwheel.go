@@ -9,6 +9,12 @@ import (
 	"github.com/RussellLuo/timingwheel/delayqueue"
 )
 
+var taskRunner = func(task func()) {
+	// Like the standard time.AfterFunc (https://golang.org/pkg/time/#AfterFunc),
+	// always execute the timer's task in its own goroutine.
+	go task()
+}
+
 // TimingWheel is an implementation of Hierarchical Timing Wheels.
 type TimingWheel struct {
 	tick      int64 // in milliseconds
@@ -111,10 +117,7 @@ func (tw *TimingWheel) add(t *Timer) bool {
 func (tw *TimingWheel) addOrRun(t *Timer) {
 	if !tw.add(t) {
 		// Already expired
-
-		// Like the standard time.AfterFunc (https://golang.org/pkg/time/#AfterFunc),
-		// always execute the timer's task in its own goroutine.
-		go t.task()
+		taskRunner(t.task)
 	}
 }
 
@@ -223,4 +226,9 @@ func (tw *TimingWheel) ScheduleFunc(s Scheduler, f func()) (t *Timer) {
 	tw.addOrRun(t)
 
 	return
+}
+
+// SetTaskRunner replace default timer execute function.
+func SetTaskRunner(runner func(task func())) {
+	taskRunner = runner
 }
