@@ -80,6 +80,13 @@ func (pq *priorityQueue) PeekAndShift(max int64) (*item, int64) {
 	return item, 0
 }
 
+// Clear the priorityQueue
+func (pq *priorityQueue) Clear() {
+	if pq.Len() != 0 {
+		*pq = nil
+	}
+}
+
 // The end of PriorityQueue implementation.
 
 // DelayQueue is an unbounded blocking queue of *Delayed* elements, in which
@@ -183,4 +190,14 @@ func (dq *DelayQueue) Poll(exitC chan struct{}, nowF func() int64) {
 exit:
 	// Reset the states
 	atomic.StoreInt32(&dq.sleeping, 0)
+}
+
+func (dq *DelayQueue) Len() int {
+	return dq.pq.Len()
+}
+
+func (dq *DelayQueue) Clear() {
+	dq.mu.Lock()
+	dq.pq.Clear()
+	dq.mu.Unlock()
 }

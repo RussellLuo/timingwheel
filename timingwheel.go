@@ -2,6 +2,7 @@ package timingwheel
 
 import (
 	"errors"
+	"sync"
 	"sync/atomic"
 	"time"
 	"unsafe"
@@ -16,6 +17,7 @@ type TimingWheel struct {
 
 	interval    int64 // in milliseconds
 	currentTime int64 // in milliseconds
+	mu          sync.RWMutex
 	buckets     []*bucket
 	queue       *delayqueue.DelayQueue
 
@@ -71,7 +73,13 @@ func (tw *TimingWheel) add(t *Timer) bool {
 	} else if t.expiration < currentTime+tw.interval {
 		// Put it into its own bucket
 		virtualID := t.expiration / tw.tick
+		tw.mu.RLock()
+		if tw.buckets == nil {
+			tw.mu.RUnlock()
+			return false
+		}
 		b := tw.buckets[virtualID%tw.wheelSize]
+		tw.mu.RUnlock()
 		b.Add(t)
 
 		// Set the bucket expiration time
@@ -109,6 +117,9 @@ func (tw *TimingWheel) add(t *Timer) bool {
 // addOrRun inserts the timer t into the current timing wheel, or run the
 // timer's task if it has already expired.
 func (tw *TimingWheel) addOrRun(t *Timer) {
+	if tw.IsStopped() {
+		return
+	}
 	if !tw.add(t) {
 		// Already expired
 
@@ -160,8 +171,38 @@ func (tw *TimingWheel) Start() {
 // not wait for the task to complete before returning. If the caller needs to
 // know whether the task is completed, it must coordinate with the task explicitly.
 func (tw *TimingWheel) Stop() {
+	if tw.IsStopped() {
+		return
+	}
 	close(tw.exitC)
 	tw.waitGroup.Wait()
+	tw.clear()
+}
+
+func (tw *TimingWheel) clear() {
+	tw.queue.Clear()
+	tw.mu.Lock()
+	tw.buckets = nil
+	tw.mu.Unlock()
+	// Try to clear the overflow wheel if present
+	overflowWheel := atomic.LoadPointer(&tw.overflowWheel)
+	if overflowWheel != nil {
+		(*TimingWheel)(overflowWheel).clear()
+	}
+}
+
+func (tw *TimingWheel) Len() int {
+	l := 0
+	tw.mu.Lock()
+	for i := 0; i < len(tw.buckets); i++ {
+		l += tw.buckets[i].Len()
+	}
+	tw.mu.Unlock()
+	overflowWheel := atomic.LoadPointer(&tw.overflowWheel)
+	if overflowWheel != nil {
+		l += (*TimingWheel)(overflowWheel).Len()
+	}
+	return l
 }
 
 // AfterFunc waits for the duration to elapse and then calls f in its own goroutine.
@@ -223,4 +264,13 @@ func (tw *TimingWheel) ScheduleFunc(s Scheduler, f func()) (t *Timer) {
 	tw.addOrRun(t)
 
 	return
+}
+
+func (tw *TimingWheel) IsStopped() bool {
+	select {
+	case <-tw.exitC:
+		return true
+	default:
+	}
+	return false
 }
