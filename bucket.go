@@ -132,6 +132,13 @@ func (b *bucket) Flush(reinsert func(*Timer)) {
 	b.SetExpiration(-1)
 }
 
+// Clear timer list
+func (b *bucket) Clear() {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	b.timers = b.timers.Init()
+}
+
 func (b *bucket) Len() int {
 	b.mu.Lock()
 	defer b.mu.Unlock()

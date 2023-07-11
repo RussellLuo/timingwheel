@@ -182,6 +182,9 @@ func (tw *TimingWheel) Stop() {
 func (tw *TimingWheel) clear() {
 	tw.queue.Clear()
 	tw.mu.Lock()
+	for _, b := range tw.buckets {
+		b.Clear()
+	}
 	tw.buckets = nil
 	tw.mu.Unlock()
 	// Try to clear the overflow wheel if present
