@@ -89,3 +89,101 @@ func TestTimingWheel_ScheduleFunc(t *testing.T) {
 		}
 	}
 }
+
+func TestTimingWheel_IsStopped(t *testing.T) {
+	tw := timingwheel.NewTimingWheel(time.Millisecond, 20)
+	tw.Start()
+	if tw.IsStopped() {
+		t.Errorf("IsStopped() = true before stop")
+	}
+	tw.Stop()
+	if !tw.IsStopped() {
+		t.Errorf("IsStopped() = false after stop")
+	}
+	// test stop 2 times
+	tw.Stop()
+}
+
+func TestTimingWheel_Len(t *testing.T) {
+	type fields struct {
+		tw  *timingwheel.TimingWheel
+		len int
+	}
+	tests := []struct {
+		name   string
+		fields fields
+		want   int
+	}{
+		{
+			name: "",
+			fields: fields{
+				tw:  timingwheel.NewTimingWheel(1*time.Millisecond, 20),
+				len: 0,
+			},
+			want: 0,
+		},
+		{
+			name: "",
+			fields: fields{
+				tw:  timingwheel.NewTimingWheel(1*time.Second, 20),
+				len: 100,
+			},
+			want: 100,
+		},
+		{
+			name: "",
+			fields: fields{
+				tw:  timingwheel.NewTimingWheel(1*time.Minute, 20),
+				len: 100,
+			},
+			want: 100,
+		},
+		{
+			name: "",
+			fields: fields{
+				tw:  timingwheel.NewTimingWheel(1*time.Minute, 20),
+				len: 10000,
+			},
+			want: 10000,
+		},
+		{
+			name: "",
+			fields: fields{
+				tw:  timingwheel.NewTimingWheel(1*time.Minute, 200),
+				len: 100,
+			},
+			want: 100,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			tw := tt.fields.tw
+			tw.Start()
+			defer tw.Stop()
+			for i := 0; i < tt.fields.len; i++ {
+				tw.AfterFunc(time.Duration(i+1)*time.Minute, func() {
+				})
+			}
+			if got := tw.Len(); got != tt.want {
+				t.Errorf("Len() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestTimingWheel_clear(t *testing.T) {
+	tw := timingwheel.NewTimingWheel(1*time.Minute, 20)
+	tw.Start()
+	l := 10000
+	for i := 0; i < l; i++ {
+		tw.AfterFunc(time.Duration(i+1)*time.Minute, func() {
+		})
+	}
+	if tw.Len() != l {
+		t.Errorf("add events fail")
+	}
+	tw.Stop()
+	if tw.Len() != 0 {
+		t.Errorf("clear events fail. tw.Len(): %d", tw.Len())
+	}
+}

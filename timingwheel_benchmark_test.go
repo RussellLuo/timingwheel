@@ -72,3 +72,19 @@ func BenchmarkStandardTimer_StartStop(b *testing.B) {
 		})
 	}
 }
+
+func BenchmarkTimingWheel_KeepStartStop(b *testing.B) {
+	var tw *timingwheel.TimingWheel
+	for j := 0; j < 10; j++ {
+		b.ResetTimer()
+		tw = timingwheel.NewTimingWheel(1*time.Minute, 20)
+		tw.Start()
+		l := 100
+		for i := 0; i < l; i++ {
+			tw.AfterFunc(time.Duration(i+1)*time.Minute, func() {
+			})
+		}
+		tw.Stop()
+		b.StopTimer()
+	}
+}
